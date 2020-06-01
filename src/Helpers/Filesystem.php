@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Vesp\Helpers;
 
+use InvalidArgumentException;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\FileExistsException;
 use League\Flysystem\Filesystem as BaseFilesystem;
 use Slim\Psr7\Stream;
 use Slim\Psr7\UploadedFile;
 use Throwable;
-use InvalidArgumentException;
 use Vesp\Dto\File as FileDto;
 
 class Filesystem
@@ -20,7 +20,6 @@ class Filesystem
     public function __construct()
     {
         $adapter = new Local($this->getRoot());
-
         $this->filesystem = new BaseFilesystem($adapter);
     }
 
@@ -32,7 +31,7 @@ class Filesystem
     /**
      * @return string
      */
-    protected function getRoot()
+    protected function getRoot(): string
     {
         return rtrim(getenv('UPLOAD_DIR'), '/') ?: (sys_get_temp_dir() . '/upload');
     }
@@ -42,7 +41,7 @@ class Filesystem
      * @param string $mime
      * @return string
      */
-    public function getSaveName($filename = null, $mime = null)
+    public function getSaveName($filename = null, $mime = null): string
     {
         $ext = null;
         if ($filename && $tmp = pathinfo($filename, PATHINFO_EXTENSION)) {
@@ -67,7 +66,7 @@ class Filesystem
      * @param string $filename
      * @return string
      */
-    public function getSavePath($filename)
+    public function getSavePath($filename): string
     {
         return strlen($filename) >= 3
             ? implode('/', [$filename[0], $filename[1], $filename[2]])
@@ -78,7 +77,7 @@ class Filesystem
      * @param string $path
      * @return bool
      */
-    public function deleteFile(string $path)
+    public function deleteFile(string $path): ?bool
     {
         try {
             return $this->filesystem->delete($path);
@@ -91,34 +90,30 @@ class Filesystem
      * @param string $path
      * @return string
      */
-    public function getFullPath(string $path)
+    public function getFullPath(string $path): string
     {
         return implode('/', [$this->getRoot(), $path]);
     }
 
-    /**
-     * @param string $path
-     * @return string|false
-     */
-    public function getFile(string $path)
+    public function getFile(string $path): ?string
     {
         try {
-            return $this->filesystem->read($path);
+            return $this->filesystem->read($path) ?: null;
         } catch (Throwable $e) {
-            return false;
+            return null;
         }
     }
 
     /**
      * @param UploadedFile|string $file
      * @param FileDto $fileDto
-     * @param array $metadata
+     * @param array|null $metadata
      * @param bool $replace
-     * @return FileDto
+     * @return FileDto|null
      * @throws InvalidArgumentException
      * @throws FileExistsException
      */
-    public function uploadFile($file, FileDto $fileDto, array $metadata = null, $replace = true): FileDto
+    public function uploadFile($file, FileDto $fileDto, array $metadata = null, $replace = true): ?FileDto
     {
         $file = $this->normalizeFile($file);
         $type = $file->getClientMediaType();
@@ -166,7 +161,7 @@ class Filesystem
             if (!strpos($file, ';base64,')) {
                 throw new InvalidArgumentException('Could not parse base64 string');
             }
-            $stream = new Stream(fopen($file, 'r'));
+            $stream = new Stream(fopen($file, 'rb'));
 
             [$mime, $data] = explode(',', $file);
             $mime = str_replace(['data:', ';base64'], '', $mime);

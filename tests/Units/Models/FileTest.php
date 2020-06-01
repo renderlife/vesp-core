@@ -5,7 +5,6 @@
 namespace Vesp\Tests\Units\Models;
 
 use InvalidArgumentException;
-use League\Flysystem\Filesystem;
 use Slim\Psr7\Stream;
 use Slim\Psr7\UploadedFile;
 use Vesp\Models\File;
@@ -71,7 +70,7 @@ class FileTest extends TestCase
         $file->uploadFile(self::PNG, ['name' => 'test.png']);
 
         $file->deleteFile();
-        $this->assertFalse($file->getFile());
+        $this->assertNull($file->getFile());
 
         $file->delete();
         $this->assertFalse($file->exists);
@@ -79,7 +78,7 @@ class FileTest extends TestCase
 
     public function testUploadFile()
     {
-        $stream = new Stream(fopen(self::PNG, 'r'));
+        $stream = new Stream(fopen(self::PNG, 'rb'));
         $data = new UploadedFile($stream, 'test.png', 'image/png', strlen(self::PNG));
         putenv('UPLOAD_DIR='); // Clear upload path to use PHP temporary dir
 
